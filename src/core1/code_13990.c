@@ -163,7 +163,26 @@ void func_80251878(f32* arg0) {
     D_80282FD0 = var_a2;
 }
 
-#pragma GLOBAL_ASM("asm/nonmatchings/core1/code_13990/func_802519C8.s")
+void func_802519C8(Mtx * arg0, Mtx * arg1) {
+    s32 row;
+    s32 col;
+    Mtx * dst = (D_80282FD0 + 1);
+    
+    for (row = 0; row < 4; row++, arg1 = &arg1->m[1][0])
+    {
+        for (col = 0; col < 4; col++)
+        {
+            reinterpret_cast(f32, dst->m[row][col]) =
+            (
+                reinterpret_cast(f32, arg1->m[0][0]) * reinterpret_cast(f32, arg0->m[0][col]) +
+                reinterpret_cast(f32, arg1->m[0][1]) * reinterpret_cast(f32, arg0->m[1][col]) +
+                reinterpret_cast(f32, arg1->m[0][2]) * reinterpret_cast(f32, arg0->m[2][col]) +
+                reinterpret_cast(f32, arg1->m[0][3]) * reinterpret_cast(f32, arg0->m[3][col])
+            );
+        }
+    }
+    D_80282FD0 = (dst + 0);
+}
 
 //mlMtx
 void mlMtxIdent(void){
