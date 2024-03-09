@@ -49,13 +49,10 @@ void func_802514BC(Mtx* arg0) {
     f32 sum;
     f32 prod[4][4];
 
-    for(row = 0; row < 4; row++, arg0 = &arg0->m[1][0])
-    {
-        for(col = 0; col < 4; col++)
-        {
+    for(row = 0; row < 4; row++, arg0 = &arg0->m[1][0]){
+        for(col = 0; col < 4; col++){
             sum = 0.0;
-            for(i = 0; i < 4; i++)
-            {
+            for(i = 0; i < 4; i++){
                 sum += reinterpret_cast(f32, arg0->m[0][i]) * reinterpret_cast(f32, D_80282FD0->m[i][col]);
             }
             prod[row][col] = sum;
@@ -85,7 +82,6 @@ void func_802515D4(f32 arg0[3][3]) {
     for( i = 0; i < 3; i++){
         for(var_v1 = 0; var_v1 < 3; var_v1++){
             reinterpret_cast(f32, D_80282FD0->m[i][var_v1]) = sp1C[i][var_v1];
-
         }
     }
 }
@@ -158,17 +154,14 @@ void func_80251878(f32* arg0) {
     D_80282FD0 = var_a2;
 }
 
-void func_802519C8(Mtx * arg0, Mtx * arg1) {
+void func_802519C8(Mtx* arg0, Mtx* arg1){
     s32 row;
     s32 col;
     Mtx * dst = (D_80282FD0 + 1);
     
-    for (row = 0; row < 4; row++, arg1 = &arg1->m[1][0])
-    {
-        for (col = 0; col < 4; col++)
-        {
-            reinterpret_cast(f32, dst->m[row][col]) =
-            (
+    for (row = 0; row < 4; row++, arg1 = &arg1->m[1][0]){
+        for (col = 0; col < 4; col++){
+            reinterpret_cast(f32, dst->m[row][col]) = (
                 reinterpret_cast(f32, arg1->m[0][0]) * reinterpret_cast(f32, arg0->m[0][col]) +
                 reinterpret_cast(f32, arg1->m[0][1]) * reinterpret_cast(f32, arg0->m[1][col]) +
                 reinterpret_cast(f32, arg1->m[0][2]) * reinterpret_cast(f32, arg0->m[2][col]) +
