@@ -8,6 +8,7 @@
 void func_8023E00C(enum map_e);
 void func_8023DFF0(s32);
 
+#define FIVE_BIT(x) ((x >> 3) & 0x1F)
 
 s32 D_80275610 = 0;
 s32 D_80275614 = 0;
@@ -19,7 +20,6 @@ u32 D_8027561C[] = {
 u32 D_80275650 = 0xAD019D3C; //SM_DATA_CRC_1
 u32 D_80275654 = 0xD381B72F; //SM_DATA_CRC_2
 char D_80275658[] = "HjunkDire:218755";
-
 
 /* .bss */
 u32 D_8027A130;
@@ -129,27 +129,20 @@ void func_8023DCF4(void){
     D_80275618--;
 }
 
-
-
-#ifndef NONMATCHING
-#pragma GLOBAL_ASM("asm/nonmatchings/core1/code_0/mainLoop.s")
-#else
 void mainLoop(void){
-    s32 x;
-    s32 y;
-    s32 r;
-    s32 g;
-    s32 b;
+    s32 x, y;
+    s32 r, g, b, a;
+    u16 tmp;
     u16 rgba;
-
-    if((func_8023DB5C() & 0x7f) == 0x11)
+    s32 offset;
+    
+    if((func_8023DB5C() & 0x7F) == 0x11)
         sns_write_payload_over_heap();
     func_8023DA74();
 
     if(D_8027A130 != 3 || getGameMode() != GAME_MODE_4_PAUSED)
         func_8023DCDC();
-    
-    if(!D_8027BEEC)
+    if(D_8027BEEC == 0)
         func_8024E7C8();
     D_8027BEEC = 0;
     rumbleManager_80250C08();
@@ -180,25 +173,26 @@ void mainLoop(void){
         || !levelSpecificFlags_validateCRC1()
         || !func_80320240()
     ){
-        s32 offset;
-        //render weird CRC failure image
-        for(x= 0x1e; x< framebuffer_height - 0x1e; x++){//L8023DEB4
-            g = x >> 3;
-            for(y = 0x14; y < 0xeb; y++){
-                b = ((func_8023DB5C() << 3) + y*y + x*x) >> 3;
-                r = y >> 3;
-                rgba = _SHIFTL(b, 1, 5);
-                rgba |= _SHIFTL(r, 11, 5 );
-                rgba |= _SHIFTL(g, 6, 5);
-                rgba |= _SHIFTL(1, 0, 1 );
-                offset = ((framebuffer_width - 0xff)/2 + y + x*framebuffer_width);
-                D_803A5D00[0][offset] = rgba;
-                D_803A5D00[1][offset] = rgba;
+        // render weird CRC failure image
+        for(x = 0x1E; x < framebuffer_height - 0x1E; x++){//L8023DEB4
+            for(y = 0x14; y < 0xEB; y++){
+                
+                tmp = ((8 * func_8023DB5C()) + ((y*y) + (x*x)));
+                
+                r = (FIVE_BIT(y)   << 11);
+                g = (FIVE_BIT(x)   <<  6);
+                b = (FIVE_BIT(tmp) <<  1);
+                a = 1;
+                
+                rgba = b | r | g | a;
+                
+                offset = ((framebuffer_width - 0xFF) / 2) + y + (x*framebuffer_width);
+                D_803A5D00[0][offset] = (s32) rgba;
+                D_803A5D00[1][offset] = (s32) rgba;
             }
         }
     }//L8023DF70
 }
-#endif
 
 void __mainMethod(void *arg0){ 
     core1_init();
@@ -222,7 +216,7 @@ void func_8023E00C(enum map_e map_id){
 
 void mainThread_create(void){
     // 5th argument should be a pointer to the end of an array, but the start is unknown
-    // D_8027A538 is not the right symbol, but the end of the array is the important port and this is the closest symbol currently
+    // D_8027A538 is not the right symbol, but the end of the array is the important part and this is the closest symbol currently
     osCreateThread(&s_MainThread, 6, __mainMethod, NULL, ((u8*)&D_8027A538) + 0x1800, 0x14);
 }
 
