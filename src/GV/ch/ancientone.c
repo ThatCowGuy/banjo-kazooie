@@ -13,6 +13,12 @@ typedef struct {
 }ActorLocal_chAncientOne;
 #define LOCAL_CH_ANCIENT_ONE(s) ((ActorLocal_chAncientOne *)&s->local)
 
+enum CH_ANCIENT_ONE_STATES = {
+    CH_ANCIENT_ONE_IDLE_OR_RISING = 1,
+    CH_ANCIENT_ONE_CONTRACTING_RING = 2,
+    CH_ANCIENT_ONE_SINKING = 3,
+};
+
 void chAncientOne_update(Actor *this);
 Actor *chAncientOne_draw(ActorMarker *this_marker, Gfx **gfx, Mtx **mtx, Vtx **vtx);
 
@@ -43,15 +49,15 @@ void func_80386620(Actor *this){
     s32 phi_s1;
     s32 phi_s3;
 
-    for(i = 0; i <5; i++){
+    for(i = 0; i < 5; i++){
         if(D_80390C28[i] == NULL)
             return;
     }
 
-     GV_D_80390C20[0] = 5;
-     GV_D_80390C20[1] = 6;
-     GV_D_80390C20[2] = 7;
-     GV_D_80390C20[3] = 8;
+    GV_D_80390C20[0] = 5;
+    GV_D_80390C20[1] = 6;
+    GV_D_80390C20[2] = 7;
+    GV_D_80390C20[3] = 8;
 
     phi_s3 = (randf() * 1.0737418e9f);
     phi_s2 = 1;
@@ -89,14 +95,18 @@ void func_803867F4(void){
     func_802BAFE4(4);
     if(nodeProp_findPositionFromActorId(0x148, sp24)){
         jiggySpawn(JIGGY_46_GV_ANCIENT_ONES, sp24);
-        __spawnQueue_add_4((GenFunction_4)func_802C4140, 0x4C, reinterpret_cast(s32, sp24[0]), reinterpret_cast(s32, sp24[1]), reinterpret_cast(s32, sp24[2]));
+        __spawnQueue_add_4((GenFunction_4)func_802C4140, 0x4C,
+            reinterpret_cast(s32, sp24[0]),
+            reinterpret_cast(s32, sp24[1]),
+            reinterpret_cast(s32, sp24[2])
+        );
     }
 }
 
 void func_80386850(ActorMarker *caller_marker, enum asset_e text_id, s32 arg2){
     Actor *caller = marker_getActor(caller_marker); 
     if(text_id == 0xA80){
-        func_80328B8C(caller, 2, 0.0f, 1);
+        func_80328B8C(caller, CH_ANCIENT_ONE_CONTRACTING_RING, 0.0f, 1);
         actor_playAnimationOnce(caller);
         func_8025A6EC(COMUSIC_2D_PUZZLE_SOLVED_FANFARE, 0x7fff);
         timedFunc_set_0(1.0f, func_803867F4);
@@ -104,12 +114,11 @@ void func_80386850(ActorMarker *caller_marker, enum asset_e text_id, s32 arg2){
 }
 
 void chAncientOne_update(Actor *this){
-    f32 sp44[3];
+    f32 player_pos[3];
     s32 sp40;
-    s32 sp38;
+    s32 next_flag;
     s32 pad;
     f32 sp34;
-
     
     if(!this->unk16C_4){
         this->unk16C_4 = TRUE;
@@ -134,20 +143,25 @@ void chAncientOne_update(Actor *this){
     }
     else{//L803869B4
         switch(this->state){
-            case 1: //L803869E4
-                player_getPosition(sp44);
-                sp44[0] -= LOCAL_CH_ANCIENT_ONE(this)->unk10[0];
-                sp44[1] -= LOCAL_CH_ANCIENT_ONE(this)->unk10[1];
-                sp44[2] -= LOCAL_CH_ANCIENT_ONE(this)->unk10[2];
-                sp40 = (0.0f <= sp44[0]*LOCAL_CH_ANCIENT_ONE(this)->unk0[0] + sp44[1]*LOCAL_CH_ANCIENT_ONE(this)->unk0[1] + sp44[2]*LOCAL_CH_ANCIENT_ONE(this)->unk0[2]) ? 0 : 1;
-                if(LOCAL_CH_ANCIENT_ONE(this)->unk1C <= this->position_y){
+            case CH_ANCIENT_ONE_IDLE_OR_RISING: //L803869E4
+                player_getPosition(player_pos);
+                player_pos[0] -= LOCAL_CH_ANCIENT_ONE(this)->unk10[0];
+                player_pos[1] -= LOCAL_CH_ANCIENT_ONE(this)->unk10[1];
+                player_pos[2] -= LOCAL_CH_ANCIENT_ONE(this)->unk10[2];
+                sp40 = (0.0f <=
+                    player_pos[0]*LOCAL_CH_ANCIENT_ONE(this)->unk0[0] +
+                    player_pos[1]*LOCAL_CH_ANCIENT_ONE(this)->unk0[1] +
+                    player_pos[2]*LOCAL_CH_ANCIENT_ONE(this)->unk0[2]
+                ) ? 0 : 1;
+                if(LOCAL_CH_ANCIENT_ONE(this)->unk1C <= this->position_y){ // this is the IDLE portion
                     this->position_y = LOCAL_CH_ANCIENT_ONE(this)->unk1C;
                     if( sp40 == (LOCAL_CH_ANCIENT_ONE(this)->unk4_31 ^ 1)){
-                        if((sp44[0]*sp44[0] + sp44[1]*sp44[1] + sp44[2]*sp44[2]) < (f32)LOCAL_CH_ANCIENT_ONE(this)->unk4_30){
+                        if((player_pos[0]*player_pos[0] + player_pos[1]*player_pos[1] + player_pos[2]*player_pos[2]) < (f32)LOCAL_CH_ANCIENT_ONE(this)->unk4_30){
                             func_8025A6EC(COMUSIC_2B_DING_B, 28000);
-                            for(sp38= 7; sp38< 0xC && mapSpecificFlags_get(sp38);sp38++);
-                            mapSpecificFlags_set(sp38, TRUE);
-                            if(sp38== 0xB){
+                            // find the first unset map-flag
+                            for(next_flag = 7; next_flag < 0xC && mapSpecificFlags_get(next_flag); next_flag++);
+                            mapSpecificFlags_set(next_flag, TRUE);
+                            if(next_flag == 0xB){
                                 if(!jiggyscore_isCollected(JIGGY_46_GV_ANCIENT_ONES)){
                                     func_80311480(ASSET_A80_TEXT_ANICIENT_ONES_DONE, 0xE, NULL, this->marker, func_80386850, NULL);
                                 }
@@ -156,13 +170,12 @@ void chAncientOne_update(Actor *this){
                                 }
                             }//L80386B98
                             else {   
-                                if(sp38== 7){
+                                if(next_flag == 7){
                                     if(!jiggyscore_isCollected(JIGGY_46_GV_ANCIENT_ONES)){
                                         func_80311480(ASSET_A7F_TEXT_ANICIENT_ONES_MEET, 0x4, NULL, NULL, NULL, NULL);
                                     }
                                 }
-                                
-                                func_80328B8C(this, 2, 0.0f, 1);
+                                func_80328B8C(this, CH_ANCIENT_ONE_CONTRACTING_RING, 0.0f, 1);
                                 actor_playAnimationOnce(this);
                                 if(this->unkF4_8 < 5){
                                     D_80390C28[this->unkF4_8]->propPtr->unk8_4 = TRUE;
@@ -175,18 +188,30 @@ void chAncientOne_update(Actor *this){
                         }
                     }
                 }
-                else{//L80386C64
-                    sp38 = func_8023DB5C() & 0xF;
+                else{//L80386C64 // this is the RISING portion
+                    // next flag is a timer-pseudo-rand for shaking
+                    next_flag = func_8023DB5C() & 0xF;
                     sp34 = LOCAL_CH_ANCIENT_ONE(this)->unk1C + 40.0f;
+                    // rising and shaking; the shaking part is not capped, so the final position
+                    // afterwards is dependend on the starting frame (unless the rise takes 4f)
                     this->position_y += 18.0;
-                    this->position_x += (sp38 & 1) ? 0x17 : -0x17;
-                    this->position_z += (sp38 & 2) ? 0xC : -0xC;
+                    this->position_x += (next_flag & 1) ? 0x17 : -0x17;
+                    this->position_z += (next_flag & 2) ? 0xC : -0xC;
+                    // spawning rock and dust particles
                     if(this->unkF4_8 != 1){
-                        if(sp38 == 6){
-                            __spawnQueue_add_4((GenFunction_4)func_802C4140, 0x4C, reinterpret_cast(s32, this->position_x), reinterpret_cast(s32, sp34), reinterpret_cast(s32, this->position_z));
+                        if(next_flag == 6){
+                            __spawnQueue_add_4((GenFunction_4)func_802C4140, 0x4C,
+                                reinterpret_cast(s32, this->position_x),
+                                reinterpret_cast(s32, sp34),
+                                reinterpret_cast(s32, this->position_z)
+                            );
                         }
-                        if(sp38 == 4 && this->position_y < LOCAL_CH_ANCIENT_ONE(this)->unk1C - 600.0f){
-                            __spawnQueue_add_4((GenFunction_4)func_802C4140, 0x11f, reinterpret_cast(s32, this->position_x), reinterpret_cast(s32, sp34), reinterpret_cast(s32, this->position_z));
+                        if(next_flag == 4 && this->position_y < LOCAL_CH_ANCIENT_ONE(this)->unk1C - 600.0f){
+                            __spawnQueue_add_4((GenFunction_4)func_802C4140, 0x11F,
+                                reinterpret_cast(s32, this->position_x),
+                                reinterpret_cast(s32, sp34),
+                                reinterpret_cast(s32, this->position_z)
+                            );
                         }//L80386D80
                     }
                     if(LOCAL_CH_ANCIENT_ONE(this)->unk1C <= this->position_y){
@@ -196,13 +221,13 @@ void chAncientOne_update(Actor *this){
                 }//L80386DB0 
                 LOCAL_CH_ANCIENT_ONE(this)->unk4_31 = sp40;
                 break;
-            case 2: //L80386DCC
+            case CH_ANCIENT_ONE_CONTRACTING_RING: //L80386DCC
                 if(actor_animationIsAt(this, 0.999f)){
-                    func_80328B8C(this, 3, 0.9999f, 1);
+                    func_80328B8C(this, CH_ANCIENT_ONE_SINKING, 0.9999f, 1);
                     actor_playAnimationOnce(this);
                 }
                 break;
-            case 3: //L80386E04
+            case CH_ANCIENT_ONE_SINKING: //L80386E04
                 if(LOCAL_CH_ANCIENT_ONE(this)->unk1C - 1100.0f < this->position_y){
                     this->position_y -= 10.0;
                 }
@@ -223,7 +248,7 @@ Actor *chAncientOne_draw(ActorMarker *this_marker, Gfx **gfx, Mtx **mtx, Vtx **v
     f32 sp28[3];
     s32 tmp_v0;
 
-    sp58 = (this->state == 3) ? 0 : 1;
+    sp58 = (this->state == CH_ANCIENT_ONE_SINKING) ? 0 : 1;
     func_8033A45C(3, sp58);
     func_8033A45C(4, sp58);
     actor_draw(this_marker, gfx, mtx, vtx);
@@ -243,7 +268,9 @@ Actor *chAncientOne_draw(ActorMarker *this_marker, Gfx **gfx, Mtx **mtx, Vtx **v
         sp28[1] -= sp40[1];
         sp28[2] -= sp40[2];
 
-        if(0.0f <= sp28[0] *LOCAL_CH_ANCIENT_ONE(this)->unk0[0] + sp28[1]*LOCAL_CH_ANCIENT_ONE(this)->unk0[1] + sp28[2]*LOCAL_CH_ANCIENT_ONE(this)->unk0[2])
+        if(0.0f <= sp28[0] * LOCAL_CH_ANCIENT_ONE(this)->unk0[0] +
+                   sp28[1] * LOCAL_CH_ANCIENT_ONE(this)->unk0[1] +
+                   sp28[2] * LOCAL_CH_ANCIENT_ONE(this)->unk0[2])
             LOCAL_CH_ANCIENT_ONE(this)->unk4_31 = FALSE;
         else
             LOCAL_CH_ANCIENT_ONE(this)->unk4_31 = TRUE;
@@ -251,7 +278,7 @@ Actor *chAncientOne_draw(ActorMarker *this_marker, Gfx **gfx, Mtx **mtx, Vtx **v
         LOCAL_CH_ANCIENT_ONE(this)->unk10[0] = (f32)sp40[0];
         LOCAL_CH_ANCIENT_ONE(this)->unk10[1] = (f32)sp40[1];
         LOCAL_CH_ANCIENT_ONE(this)->unk10[2] = (f32)sp40[2];
-        tmp_v0 = (sp34[1]- sp40[1]);
+        tmp_v0 = (sp34[1] - sp40[1]);
         LOCAL_CH_ANCIENT_ONE(this)->unk4_30 = (s32)(0.95*(f32)(tmp_v0*tmp_v0));
         this->initialized = TRUE;
     }

@@ -2,6 +2,8 @@
 #include "functions.h"
 #include "variables.h"
 
+enum CH_TRUNKER_STATES = {
+};
 
 void chTrucker_update(Actor *this);
 Actor *chTrucker_draw(ActorMarker *this_marker, Gfx **gfx, Mtx **mtx, Vtx **vtx);

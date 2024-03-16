@@ -5,7 +5,11 @@
 
 #include "prop.h"
 
-
+enum chhut_states_e{
+    HUT_IDLE = 0,
+    HUT_BREAKING = 1,
+    HUT_DEAD = 2,
+};
 
 /* extern function declarations */
 
@@ -54,10 +58,10 @@ void func_803869EC(ActorMarker *this){
     if(this);
 }
 
-void    chhut_update(Actor *this){
-    static s32 D_803898D8[6] = { 0, 1, 2, 3, 6, 4};
-    f32 sp3C[3];
-    f32 sp30[3];
+void chhut_update(Actor *this){
+    static s32 D_803898D8[6] = {0, 1, 2, 3, 6, 4};
+    f32 dist_to_player[3];
+    f32 player_pos[3];
 
     if(func_80334904() != 2)
         return;
@@ -67,42 +71,43 @@ void    chhut_update(Actor *this){
         this->initialized = 1;
     }
     switch(this->state){
-        case 0: //L80386AA4
-            player_getPosition(sp30);
-            sp3C[0] = sp30[0] - this->position_x;
-            sp3C[1] = sp30[1] - this->position_y;
-            sp3C[2] = sp30[2] - this->position_z;
-            if(150.0f < sp3C[1] 
+        case HUT_IDLE: //L80386AA4
+            player_getPosition(player_pos);
+            dist_to_player[0] = player_pos[0] - this->position_x;
+            dist_to_player[1] = player_pos[1] - this->position_y;
+            dist_to_player[2] = player_pos[2] - this->position_z;
+            if(150.0f < dist_to_player[1] 
                 && player_getActiveHitbox(this->marker) == HITBOX_1_BEAK_BUSTER 
                 && func_8028F20C()
-                && gu_sqrtf(sp3C[0]*sp3C[0] + sp3C[1]*sp3C[1] + sp3C[2]*sp3C[2]) < 350.0f
+                && gu_sqrtf(SQUARE(dist_to_player[0]) + SQUARE(dist_to_player[1]) + SQUARE(dist_to_player[2])) < 350.0f
             ){
-                sp3C[0] = this->position_x;
-                sp3C[1] = this->position_y;
-                sp3C[2] = this->position_z;
-                sp3C[1] += 125.0;
+                f32 spawn_pos[3]; // redactable
+                spawn_pos[0] = this->position_x;
+                spawn_pos[1] = this->position_y;
+                spawn_pos[2] = this->position_z;
+                spawn_pos[1] += 125.0;
                 func_8030E484(SFX_5B_HEAVY_STUFF_FALLING);
-                func_80328A84(this, 1);
+                func_80328A84(this, HUT_BREAKING);
                 actor_playAnimationOnce(this);
                 __spawnQueue_add_1((GenFunction_1)func_803869EC, (s32)this->marker);
                 func_802C8F70(this->yaw);
                 if(D_8037DCB0 < 5){
-                    __spawnQueue_add_4((GenFunction_4)func_802C4218, D_803898D8[D_8037DCB0], *(s32*)(&sp3C[0]),*(s32*)(&sp3C[1]),*(s32*)(&sp3C[2]));
+                    __spawnQueue_add_4((GenFunction_4)func_802C4218, D_803898D8[D_8037DCB0], *(s32*)(&spawn_pos[0]),*(s32*)(&spawn_pos[1]),*(s32*)(&spawn_pos[2]));
                 }
                 else{
                     jiggySpawn(JIGGY_5_MM_HUTS, sp3C);
                 }
-                D_8037DCB0 = ( D_8037DCB0 + 1 ) % 6;
+                D_8037DCB0 = (D_8037DCB0 + 1) % 6;
             }
             break;
-        case 1: //L80386C2C
+        case HUT_BREAKING: //L80386C2C
             if(animctrl_getAnimTimer(this->animctrl) > 0.99){
                 animctrl_setTransitionDuration(this->animctrl, 0.0f);
-                func_80328A84(this, 2);
+                func_80328A84(this, HUT_DEAD);
                 this->position_y -= 160.0f;
             }
             break;
-        case 2: //L80386C80
+        case HUT_DEAD: //L80386C80
             break;
     }
 
